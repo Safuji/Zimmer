@@ -3,7 +3,7 @@ window.onload = function(){
 
     const APP_TOKEN = 'euRkqcvxPjg:APA91bFK0zA8PWFVQZFPQXatA0cLUSn68jG2RxcE4JePBLcjEnwesvC4hBPOeNlupekE2ZhEwBvUnJY_aDjhwzZmx2RINrNVJxoLMA_S2MdQa_xd0RSTV-PYvG-0EtPd4EMz54Jer1wN';
 
-    const users = [
+    let users = [
           {
             "UId": "322",
             "userName": "AlexS",
@@ -1089,11 +1089,13 @@ window.onload = function(){
             "level": 15,
             "hasApp": 1
           }
-        ].map(item => Object.assign({}, item, {gender: Math.random() > 0.5? "m":"w" }));
+        ].map(item => Object.assign({}, item, {gender: Math.random() > 0.5? "m":"w" }))
+		.map(item => Object.assign({}, item, {age: Math.round(Math.random() * 7 + 11)}))
 
     //console.log(users);
 
     const rooms = [
+
         {
 			id:0,
             age: 12,
@@ -1158,56 +1160,84 @@ window.onload = function(){
             level: 0
         }
     ]
-    const possibleDistributions = [];
-    let freeRooms = {}
 
-    function assignRoom(user, d) {
-        let room = -1;
-        let dist = possibleDistributions[d]
-		let userObj = users[user];
-		let fRooms = freeRooms[userObj.gender]
-		console.log(freeRooms,userObj.gender,fRooms)
-        const rand = Math.floor(Math.random() * (fRooms.length - 1))
-        room = (userObj.gender === 'm' ? fRooms[rand] : fRooms[rand] * -1 );
-		
+    const ratio = users.length / rooms.map(item => item.members).reduce((n, item) => n + item, 0);
+    console.log(ratio);
 
-        if (!dist[room]){
-            dist[room] = {users: []}
-        }
-
-        dist[room].users.push(userObj);
-
-        if (dist[room].users.length >= rooms[room]?.members)
-			fRooms = fRooms.filter(item => item != room);
+    users = {
+      'm': users.filter(({gender}) => gender == 'm'),
+      'w': users.filter(({gender}) => gender == 'w'),
     }
 
+	//console.log(users);
+	console.log(findBestDistribution(users, rooms, 100000000));
+	
+	function findBestDistribution(users, rooms, n){
+		const distributions = []
+		let highestScore = 0;
+		for(let i = 0; i < n; i++){
+			let dist = createDistribution(users, rooms)
+			//console.log(dist);
+			distributions.push(dist);
+            if (dist.score > highestScore){
+                highestScore = dist.score;
+                console.log(i, highestScore)
+            }
+		}
+		return distributions.sort((a, b) => b.score - a.score)
+	}
+	function createDistribution(users, rooms){
+		const filledRooms = []
+		const homeLessUsers = JSON.parse(JSON.stringify(users))
 
-    function rankRoom() {
+		for (let room of rooms){
+            let filledRoom = {id: room.id, users : []}
+			for (let i = 0; i < (Math.ceil(room.members * ratio)); i++){
+				filledRoom.users.push(pickUser(homeLessUsers[room.gender]))
+			}
+			filledRoom.score = scoreRoom(filledRoom)
+            filledRooms.push(filledRoom)
+		}
+		filledRooms.score = filledRooms.map(item => item.score).reduce((n, item) => n + item, 0)
+    	return filledRooms
+	}
 
-    }
+    function scoreRoom(room) {
+		let score = 0
+        let oldest = 0
+        let c = 0
+        let ages = {}
 
-    function scoreDistributionResult(d){
-        for (let i in possibleDistributions[d]){
 
+        for (let u of room.users){
+            if (u.age < oldest) oldest = u.age;
+           //console.log(u.age);
+
+            if (!ages[u.age]) ages[u.age] = 1
+            else ages[u.age]++
+
+            c += u.age
         }
-    };
+        c -= oldest
 
-
-
-    d = 0;
-    while(d < 2) {
-        freeRooms = {
-			'm': [...rooms.filter(item => item.gender === 'm').keys()],
-		 	'w': [...rooms.filter(item => item.gender === 'w').keys()]
-		};
-        possibleDistributions[d] = {}
-        console.log(freeRooms)
-        for (let [id, u] of users.entries()) {
-            assignRoom(id, d);
-            if (freeRooms[u.gender] == []) break;
+        const average = c / (room.users.length - 1);
+		for (let n in ages){
+            //console.log(n, ages[n]);
+        	score -= Math.abs((parseInt(n) - average) * ages[n])
+			score += ages[n] ** 2
         }
-        d++;
+        
+        if (average < 16 && (oldest - average) > 2) score += 10;
+
+		return Number(score.toFixed(2))
+	}
+
+
+    function pickUser(arr){
+      const res = arr[ Math.floor(Math.random() * (arr.length - 1))]
+      arr = arr.filter(({id}) => id != res.id)
+      return res
     }
-	console.log(possibleDistributions)
 }
+
 
