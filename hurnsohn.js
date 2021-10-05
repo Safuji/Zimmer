@@ -1110,6 +1110,13 @@ window.onload = function(){
             members: 50,
             level: 0
         },
+		{
+			id:2,
+            age: 12,
+            gender: 'm',
+            members: 6,
+            level: 0
+        },
         {
 			id:2,
             age: 12,
@@ -1170,7 +1177,16 @@ window.onload = function(){
     }
 
 	//console.log(users);
-	console.log(findBestDistribution(users, rooms, 100000000));
+	let highestestScore = 0;
+	setInterval(() => {
+		d = findBestDistribution(users, rooms, 10000)
+
+		if(highestestScore < d.score){
+			highestestScore = d.score
+			console.log(d);
+		}
+		
+	}, 1);
 	
 	function findBestDistribution(users, rooms, n){
 		const distributions = []
@@ -1181,10 +1197,10 @@ window.onload = function(){
 			distributions.push(dist);
             if (dist.score > highestScore){
                 highestScore = dist.score;
-                console.log(i, highestScore)
+                //console.log(i, highestScore)
             }
 		}
-		return distributions.sort((a, b) => b.score - a.score)
+		return distributions.sort((a, b) => b.score - a.score)[0]
 	}
 	function createDistribution(users, rooms){
 		const filledRooms = []
